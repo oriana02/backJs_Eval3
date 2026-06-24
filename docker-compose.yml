@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  user-db:
+    image: mysql:8.0
+    container_name: user-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: users_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - user_db_data:/var/lib/mysql
+    networks:
+      - user-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service-api
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=user-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=users_db
+      - PORT=8081
+    networks:
+      - user-net
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+networks:
+  user-net:
+    driver: bridge
+
+volumes:
+  user_db_data:
